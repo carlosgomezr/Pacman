@@ -19,7 +19,7 @@ endm
 		opjuego1 db "1.Iniciar ",24h
 		opjuego2 db "2.Volver ",24h
 		opjuego3 db "3.Limpiar ",24h
-		opjuego4 db "4.Logout ",24h
+		opjuego4 db "4.Logout",0Dh,0Ah,24h
         apellido db "xD$" 
         msgtime db "time$"
         msgscore db "score$"  
@@ -164,12 +164,33 @@ volverjuego:
     ;call timer           
     call nameus
 	call maxscore
+	mov ah,02h
+	mov dl,2
+	mov dl,0
+	int 10h
     jmp readesc	
 
 logout:
 	jmp printmenu
 	
     ;leer la tecla scape
+	
+readesc2:
+	mov ah,8h
+    int 21h
+    cmp al,70h  ;hexa de la tecla p
+    je printmenu
+	cmp al,6dh	;saltar si es igual a m la tecla presionada
+	je printmenujuego
+    cmp al,77h     ;saltar si es igual a w la tecla presionada
+    je optionw   
+    cmp al,73h     ;saltar si es igual a s la tecla presionada
+    je options
+    cmp al,61h     ;saltar si es igual a a la tecla presionada
+    je optiona
+    cmp al,64h     ;saltar si es igual a d la tecla presionada
+    jmp readesc2   
+	
 readesc:    
     mov al,time ; asigno un valor de 3 digitos en decimal al registro AL
     aam ;ajusta el valor en AL por: AH=23 Y AL=4 
@@ -209,6 +230,11 @@ readesc:
     add dl,30h
     int 21h   
     
+	mov ah,02h
+	mov dh,01
+	mov dl,00
+	int 10h
+	
      ;interrupcion 1 seg
     mov cx, 0fh
     mov dx, 4240h
@@ -933,8 +959,7 @@ maxscore:
     mov ah,02h          
     mov dl,unidad1
     add dl,30h
-    int 21h   
-    
+    int 21h       
     ret
     
 timer:
