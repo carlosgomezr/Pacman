@@ -12,14 +12,20 @@ endm
 		cadena db 'Cadena a Escribir en el archivo','$'
 		head db "Universidad de San Carlos de Guatemala",0Dh,0Ah,24h   
         menu db "Seleccione una opcion",0Dh,0Ah,24h; 0Dh,0Ah,24h --> equivale a '\n' en C++,
-        op1 db "1. Laberinto",0Dh,0Ah,24h
-        op2 db "2. Mostrar carnet",0Dh,0Ah,24h
-        op3 db "3. Mostrar texto",0Dh,0Ah,24h
-        op4 db "4. Salir",0Dh,0Ah,24h
+        op1 db "0. Laberinto",0Dh,0Ah,24h
+        op2 db "1. Login",0Dh,0Ah,24h
+        op3 db "2. Registrarse",0Dh,0Ah,24h
+        op4 db "3. Salir",0Dh,0Ah,24h
+		opjuego1 db "1.Iniciar ",24h
+		opjuego2 db "2.Volver ",24h
+		opjuego3 db "3.Limpiar ",24h
+		opjuego4 db "4.Logout ",24h
         apellido db "xD$" 
         msgtime db "time$"
         msgscore db "score$"  
-        msgname db "name$"   
+        msgname db "name$"
+		msgmaxscore db "MxS$"
+	    msgnumero db 'Numero al azar: $' 
         ;variables
         ;variable laberinto
             i dw 0
@@ -57,7 +63,11 @@ endm
             decena db 0
             unidad db 0
             time db 1
-            
+        ;variable maxscore
+			centena1 db 0
+			decena1 db 0
+			unidad1 db 0
+			scoreh db 0
         ;variable color pixcel
             color db 100
             colorpac db 01
@@ -75,6 +85,12 @@ endm
             condpx dw 0
             condpy dw 0
             mp dw 2
+		;variable randomize
+			random dw 0
+			numero dw 0
+			sumar dw 4
+			restar dw 30
+			
 .code
 inicio:
 printmenu:
@@ -85,18 +101,23 @@ printmenu:
     imprime op3
     imprime op4
     jmp readop
-    
+printmenujuego:
+	imprime opjuego1
+	imprime opjuego2
+	imprime opjuego3
+	imprime opjuego4
+	jmp readopjuego
     ;read_op opcion ingresada
 readop:
     mov ah,8h  ;lee un caracter sin imprimirlo
     int 21h
-    cmp al,31h
+    cmp al,30h
     je option1  ;saltar si es igual a uno
-    cmp al,32h
+    cmp al,31h
     je option2  ;saltar si es igual a dos
-    cmp al,33h
+    cmp al,32h
     je option3  ;saltar si es igual a tres
-    cmp al,34h
+    cmp al,33h
     jne readop ;saltar si es igual a cuatro
     
     ;borrar pantalla
@@ -109,13 +130,102 @@ readop:
     mov dl,79
     int 10h 
     ret         
+
+
+readopjuego:
+    mov ah,8h  ;lee un caracter sin imprimirlo
+    int 21h
+    cmp al,31h
+    je option1  ;saltar si es igual a uno
+    cmp al,32h
+    je volverjuego  ;saltar si es igual a dos
+    cmp al,33h
+    je option1  ;saltar si es igual a tres
+    cmp al,34h
+	je logout
+	cmp al,35h
+    jne readopjuego ;saltar si es igual a cuatro
     
+    ;borrar pantalla
+    mov ah,6h   ;funcion 6h=scroll up, 7h=scroll down
+    mov al,0h   ;lineas a scrolear 0=borrar toda la pantalla
+    mov bh,00000111b
+    mov ch,0
+    mov cl,0
+    mov dh,24
+    mov dl,79
+    int 10h 
+    ret         	
+
+volverjuego:
+	call laberinto
+	call rutscore
+    ;call timer           
+    call nameus
+	call maxscore
+    jmp readesc	
+
+logout:
+	jmp printmenu
+	
     ;leer la tecla scape
 readesc:    
-    mov ah,8h
+    mov al,time ; asigno un valor de 3 digitos en decimal al registro AL
+    aam ;ajusta el valor en AL por: AH=23 Y AL=4 
+    mov unidad,al ; Respaldo 4 en unidades
+    mov al,ah ;muevo lo que tengo en AH a AL para poder volver a separar los números 
+    aam ; separa lo qe hay en AL por: AH=2 Y AL=3
+    mov centena,ah ;respaldo las centenas en cen en este caso 2
+    mov decena,al ;respaldo las decenas en dec, en este caso 3
+    ;Imprimos los tres valores empezando por centenas, decenas y unidades.
+    
+    mov ah,02h
+    mov dh,00
+    mov dl,10
+    int 10h
+           
+    mov dx,offset msgtime
+    mov ah,9h
+    int 21h   
+    
+    mov ah,02h
+	mov dh,00
+	mov dl,15
+	int 10h
+	         
+	mov ah,02h         
+	mov dl,centena
+    add dl,30h ; se suma 30h a dl para imprimir el numero real.
     int 21h
-    cmp al,6dh  ;hexa de la tecla scape
-    je printmenu  
+    
+    mov ah,02h
+    mov dl,decena
+    add dl,30h
+    int 21h
+              
+    mov ah,02h          
+    mov dl,unidad
+    add dl,30h
+    int 21h   
+    
+     ;interrupcion 1 seg
+    mov cx, 0fh
+    mov dx, 4240h
+    mov ah, 86h
+    int 15h            
+    ;interrupcion 1 seg
+    inc time
+	
+	;mov ah,8h
+    mov ah,06h
+	mov dl,00ffh
+	int 21h
+	
+	jz readesc
+	cmp al,70h  ;hexa de la tecla p
+    je printmenu
+	cmp al,6dh	;saltar si es igual a m la tecla presionada
+	je printmenujuego
     cmp al,77h     ;saltar si es igual a w la tecla presionada
     je optionw   
     cmp al,73h     ;saltar si es igual a s la tecla presionada
@@ -123,11 +233,30 @@ readesc:
     cmp al,61h     ;saltar si es igual a a la tecla presionada
     je optiona
     cmp al,64h     ;saltar si es igual a d la tecla presionada
-    je optiond
-    cmp al,6eh
-    je optionscore
-    jmp readesc         
+    je optiond	
+	jnz readesc	
+	
+    ;jmp readesc         
 
+randomize:
+	lea dx, msgnumero
+    mov ah, 9
+    int 21h
+    Mov ah,2Ch
+    Int 21h
+    xor ax, ax
+    mov dh, 00h
+    add ax, dx
+    aaa
+    add ax, 3030h
+    mov numero[0], ax   
+    lea dx,numero 
+	mov ax, numero
+    add ax,sumar
+	mov random,ax
+    ret
+    
+	
 cicloc1:
     mov dx,ciclox
     mov x,dx
@@ -166,21 +295,34 @@ ciclop1:
         
 optionscore:
     call rutscore
-    call timer 
+    ;call timer 
     call nameus
+	call maxscore
     jmp readesc            
           
 option1:
     mov ah,0    ;cambiar modo de video
     mov al,13h  ;modo de video vga standard 
     int 10h
+	mov px,1
+	mov py,2
+	mov cen,0
+	mov dece,0
+	mov uni,0
+	mov score,0
+	mov centena,0
+	mov decena,0
+	mov unidad,0
+	mov time,0
     call laberinto
-    call frutas
+    call point
+	call frutas
     call dibujarpacman
     ;call timer
     jmp readesc   
        
 laberinto:        
+
         ;COLUMNA SUPERIOR
     mov condx,20
     mov ciclox,0
@@ -316,9 +458,11 @@ laberinto:
     mov condy,9
     mov cicloy,7
     mov x,17
-    call cicloc2  
-           
-    ;PUNTOS COLUMNA ARRIBA 
+    call cicloc2            
+    ret
+    
+point:
+	;PUNTOS COLUMNA ARRIBA 
     mov color,10
     mov posx,4
     mov posy,4
@@ -631,9 +775,8 @@ laberinto:
     mov posy,20
     call multi
     call pixel
-              
-    ret
-    
+	ret
+	
 rutscore:
     
     mov al,score ; asigno un valor de 3 digitos en decimal al registro AL
@@ -650,41 +793,43 @@ rutscore:
     
     ;Imprimos los tres valores empezando por centenas, decenas y unidades.
     mov ah,02h
-    mov dh,00
-    mov dl,00
+    mov dh,00 ; posicion de la fila donde pongo el cursor
+    mov dl,00 ; posicion de la columna donde pongo el cursor
     int 10h
            
-    mov dx,offset msgscore
+    mov dx,offset msgscore ;imprimo la variable db que se llama msgscore 
     mov ah,9h
     int 21h   
      
      
     mov ah,02h
-    mov dh,00
-	mov dl,06
+    mov dh,00 ; posicion de la fila donde pongo el cursor
+	mov dl,06 ;muevo el cursor a la columna 6
 	int 10h   
 	
 	mov ah,02h      
-    mov dl,cen
+    mov dl,cen ; imprimo numero db centena
     add dl,30h ; se suma 30h a dl para imprimir el numero real.
     int 21h
            
     mov ah,02h       
-    mov dl,dece
+    mov dl,dece; imprimo numero db decena
     add dl,30h
     int 21h
               
     mov ah,02h          
-    mov dl,uni
+    mov dl,uni; imprimo numero db unidad
     add dl,30h
     int 21h  
+	
     ;Termina impresion numero score   
     ret
         
 dibujarpacman:   
     call rutscore
-    call timer           
+    ;call timer           
     call nameus
+	call maxscore
     ;PACMAN      
     mov colorpac,14
     mov si,py
@@ -698,11 +843,12 @@ dibujarpacman:
     ;/PACMAN
     ret 
          
-frutas:         
+frutas:    
+	
     ;FRESA
     mov color,12
     mov posx,8
-    mov posy,4    
+	mov posy,3    
     call multi
     call pixel
     ;CEREZA
@@ -728,6 +874,57 @@ nameus:
     mov dx,offset msgname
     mov ah,9h
     int 21h
+    ret
+
+maxscore:
+    ;mov ah,02h
+    ;mov dh,00
+    ;mov dl,33
+    ;int 10h
+    
+    ;mov dx,offset msgmaxscore
+    ;mov ah,9h
+    ;int 21h
+    ;ret
+	
+	mov al,scoreh ; asigno un valor de 3 digitos en decimal al registro AL
+    aam ;ajusta el valor en AL por: AH=23 Y AL=4 
+    mov unidad1,al ; Respaldo 4 en unidades
+    mov al,ah ;muevo lo que tengo en AH a AL para poder volver a separar los números 
+    aam ; separa lo qe hay en AL por: AH=2 Y AL=3
+    mov centena1,ah ;respaldo las centenas en cen en este caso 2
+    mov decena1,al ;respaldo las decenas en dec, en este caso 3
+    ;Imprimos los tres valores empezando por centenas, decenas y unidades.
+    
+    mov ah,02h
+    mov dh,00
+    mov dl,33
+    int 10h
+           
+    mov dx,offset msgmaxscore
+    mov ah,9h
+    int 21h   
+    
+    mov ah,02h
+	mov dh,00
+	mov dl,37
+	int 10h
+	         
+	mov ah,02h         
+	mov dl,centena1
+    add dl,30h ; se suma 30h a dl para imprimir el numero real.
+    int 21h
+    
+    mov ah,02h
+    mov dl,decena1
+    add dl,30h
+    int 21h
+              
+    mov ah,02h          
+    mov dl,unidad1
+    add dl,30h
+    int 21h   
+    
     ret
     
 timer:
