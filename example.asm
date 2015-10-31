@@ -88,8 +88,9 @@ endm
 		;variable randomize
 			random dw 0
 			numero dw 0
-			sumar dw 4
-			restar dw 30
+			sumar1 dw 2
+			restar1 dw 6
+			por dw 2
 			
 .code
 inicio:
@@ -239,22 +240,23 @@ readesc:
     ;jmp readesc         
 
 randomize:
-	lea dx, msgnumero
-    mov ah, 9
-    int 21h
-    Mov ah,2Ch
-    Int 21h
-    xor ax, ax
-    mov dh, 00h
-    add ax, dx
-    aaa
-    add ax, 3030h
-    mov numero[0], ax   
-    lea dx,numero 
-	mov ax, numero
-    add ax,sumar
+	MOV AH, 00h  ; interrupts to get system time
+	INT 1AH      ; CX:DX now hold number of clock ticks since midnight
+
+	mov  ax, dx
+	xor  dx, dx
+	mov  cx, 10
+	div  cx       ; here dx contains the remainder of the division - from 0 to 9
+
+	add  dl, '0'  ; to ascii from '0' to '9'
+	;mov ah, 2h   ; call interrupt to display a value in DL
+	;int 21h
+	mov random,dx
+	mov ax,random
+	mul por
 	mov random,ax
-    ret
+RET
+
     
 	
 cicloc1:
@@ -846,21 +848,29 @@ dibujarpacman:
 frutas:    
 	
     ;FRESA
+	call randomize
     mov color,12
-    mov posx,8
-	mov posy,3    
+	mov dx,random
+    mov posx,dx
+	mov posy,4    
     call multi
     call pixel
     ;CEREZA
+	call randomize
     mov color,13
-    mov posx,2
-    mov posy,18
+	mov dx,random
+	sub dx,restar1
+    mov posx,dx
+    mov posy,20
     call multi
     call pixel
     ;NARANJA
+	call randomize
     mov color,44
-    mov posx,36
-    mov posy,18
+	mov dx,random
+	add dx,sumar1
+    mov posx,dx
+    mov posy,12
     call multi
     call pixel
             
