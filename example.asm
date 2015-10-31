@@ -53,6 +53,9 @@ endm
             pxr dw 0
             pyr dw 0
             ptam dw 16
+		;variable boca pacman
+			bocax dw 3
+			bocay dw 4
         ;variable contador
             cen db 0
             dece db 0
@@ -191,7 +194,8 @@ readesc2:
     cmp al,64h     ;saltar si es igual a d la tecla presionada
     jmp readesc2   
 	
-readesc:    
+readesc:
+	
     mov al,time ; asigno un valor de 3 digitos en decimal al registro AL
     aam ;ajusta el valor en AL por: AH=23 Y AL=4 
     mov unidad,al ; Respaldo 4 en unidades
@@ -241,12 +245,21 @@ readesc:
     mov ah, 86h
     int 15h            
     ;interrupcion 1 seg
+	mov color,0
+	mov dx,bocax
+	mov cx,bocay
+	mov posx,dx
+    mov posy,cx
+    call multi
+    call pixel
     inc time
+	
 	
 	;mov ah,8h
     mov ah,06h
 	mov dl,00ffh
 	int 21h
+	
 	
 	jz readesc
 	cmp al,70h  ;hexa de la tecla p
@@ -332,6 +345,8 @@ option1:
     mov ah,0    ;cambiar modo de video
     mov al,13h  ;modo de video vga standard 
     int 10h
+	mov bocax,3
+	mov bocay,4
 	mov px,1
 	mov py,2
 	mov cen,0
@@ -346,7 +361,7 @@ option1:
     call point
 	call frutas
     call dibujarpacman
-    ;call timer
+	;call timer
     jmp readesc   
        
 laberinto:        
@@ -852,7 +867,14 @@ rutscore:
 	
     ;Termina impresion numero score   
     ret
-        
+dibujarboca:
+	mov dx,bocax
+	mov cx,bocay
+	mov posx,dx
+    mov posy,cx
+    call multi
+    call pixel
+	
 dibujarpacman:   
     call rutscore
     ;call timer           
@@ -892,7 +914,7 @@ frutas:
     call pixel
     ;NARANJA
 	call randomize
-    mov color,44
+    mov color,14
 	mov dx,random
 	add dx,sumar1
     mov posx,dx
@@ -1163,55 +1185,71 @@ timer:
         inc score
         call pintarnegro
         dec py                                   
-        call dibujarpacman
+        dec bocay
+		dec bocay
+		call dibujarpacman
         jmp readesc
                     
     incrementscore2:
         inc score
         call pintarnegro
-        inc py                                   
+        inc py   
+		inc bocay
+		inc bocay		
         call dibujarpacman
         jmp readesc
     
     incrementscore3:
         inc score
         call pintarnegro
-        dec px                                   
+        dec px   
+		dec bocax
+		dec bocax
         call dibujarpacman
         jmp readesc   
         
     incrementscore4:
         inc score
         call pintarnegro
-        inc px                                   
+        inc px   
+		inc bocax
+		inc bocax
         call dibujarpacman
         jmp readesc
     
     incrementfresa1:
         add score,15
         call pintarnegro
-        dec py                                   
+        dec py   
+		dec bocay
+		dec bocay
         call dibujarpacman
         jmp readesc
                     
     incrementfresa2:
         add score,15
         call pintarnegro
-        inc py                                   
+        inc py   
+		inc bocay
+		inc bocay
         call dibujarpacman
         jmp readesc
     
     incrementfresa3:
         add score,15
         call pintarnegro
-        dec px                                   
+        dec px   
+		dec bocax
+		dec bocax
         call dibujarpacman
         jmp readesc   
         
     incrementfresa4:
         add score,15
         call pintarnegro
-        inc px                                   
+        inc px   
+		inc bocax
+		inc bocax
         call dibujarpacman
         jmp readesc
                            
@@ -1219,56 +1257,72 @@ timer:
     incrementbanano1:
         add score,25
         call pintarnegro
-        dec py                                   
+        dec py   
+		dec bocay
+		dec bocay
         call dibujarpacman
         jmp readesc
                     
     incrementbanano2:
         add score,25
         call pintarnegro
-        inc py                                   
+        inc py   
+		inc bocay
+		inc bocay
         call dibujarpacman
         jmp readesc
     
     incrementbanano3:
         add score,25
         call pintarnegro
-        dec px                                   
+        dec px   
+		dec bocax
+		dec bocax
         call dibujarpacman
         jmp readesc   
         
     incrementbanano4:
         add score,25
         call pintarnegro
-        inc px                                   
+        inc px   
+		inc bocax
+		inc bocax
         call dibujarpacman
         jmp readesc 
         
     incrementnaranja1:
         add score,5
         call pintarnegro
-        dec py                                   
+        dec py   
+		dec bocay
+		dec bocay
         call dibujarpacman
         jmp readesc
                     
     incrementnaranja2:
         add score,5
         call pintarnegro
-        inc py                                   
+        inc py   
+		inc bocay
+		inc bocay
         call dibujarpacman
         jmp readesc
     
     incrementnaranja3:
         add score,5
         call pintarnegro
-        dec px                                   
+        dec px   
+		dec bocax
+		dec bocax
         call dibujarpacman
         jmp readesc   
         
     incrementnaranja4:
         add score,5
         call pintarnegro
-        inc px                                   
+        inc px   
+		inc bocax
+		inc bocax
         call dibujarpacman
         jmp readesc                          
                                 
@@ -1305,7 +1359,9 @@ timer:
         cmp al,14
         je incrementbanano1
         call pintarnegro
-        dec py                                   
+        dec py    
+		dec bocay
+		dec bocay
         ;inc score
         call dibujarpacman
         jmp readesc  
@@ -1335,6 +1391,8 @@ timer:
         je incrementbanano2            
         call pintarnegro
         inc py   
+		inc bocay
+		inc bocay
         ;inc score
         call dibujarpacman
         jmp readesc
@@ -1364,14 +1422,17 @@ timer:
         je incrementbanano3
         call pintarnegro
         dec px
-		cmp px,0
-		jbe xpaso1
+		dec bocax
+		dec bocax
+		cmp px,1
+		jb xpaso1
         ;inc score
         call dibujarpacman     
         jmp readesc
 	xpaso1:
 		call pintarnegro
-        mov px,19                                  
+        mov px,18
+		mov bocax,37
         call dibujarpacman
         jmp readesc
     pressd:        
@@ -1400,15 +1461,18 @@ timer:
         je incrementbanano4
         call pintarnegro
         inc px   
+		inc bocax
+		inc bocax
         ;inc score
-		cmp px,19
-		jae xpaso2
+		cmp px,18
+		ja xpaso2
         call dibujarpacman
         jmp readesc       
     
 	xpaso2:
 		call pintarnegro
-        mov px,0                                 
+        mov px,1 
+		mov bocax,1
         call dibujarpacman
         jmp readesc
 		
