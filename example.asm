@@ -71,21 +71,19 @@ endm
 		slash db " ", 0Dh,0Ah,"$"
 		path db 'Usuarios.txt',0 ;nombre del archivo que deseo crear se almacena en masm611\binr
 		separar db " ","$"
-
-		scorefile db 3 dup(' '),'$'
-		user_name db 20 dup(' '),'$'
-		pasword db 5 dup(' '),'$'
-
-		user_read db 20 dup(' '),'$'
-		pass_read db 5 dup(' '),'$'
-
-		confirmarpass db 5 dup(' '),'$'
-
-		handle dw ?
-
-		msgerror1 db "ERROR ARCHIVO Usuarios.txt",0Dh,0Ah,21h
-		msgcoinciden db 'password incorreccta verifique$'
-
+		;variables file
+			scorefile db 3 dup(' '),'$'
+			scoreread db 3 dup(' '),'$'
+			user_name db 20 dup(' '),'$'
+			pasword db 5 dup(' '),'$'
+			user_read db 20 dup(' '),'$'
+			pass_read db 5 dup(' '),'$'
+			confirmarpass db 5 dup(' '),'$'
+			handle dw ?
+			msgerror1 db "ERROR ARCHIVO Usuarios.txt",0Dh,0Ah,21h
+			msgcoinciden db 'password incorreccta verifique$'
+			msgnoexiste db " No existe el user ",0dh,0ah,21h
+			msgpassin db " Password incorrecta ",0dh,0ah,21h
         ;variables
         ;variable laberinto
             i dw 0
@@ -113,6 +111,7 @@ endm
             pxr dw 0
             pyr dw 0
             ptam dw 16
+			movimiento dw 3 ;0 arriba 1 abajo 2 izquierda 3 derecha
 		;variable ojo pacman
             pojok dw 0
             pojol dw 0
@@ -266,7 +265,7 @@ readesc2:
     jmp readesc2   
 	
 readesc:
-	
+		
     mov al,time ; asigno un valor de 3 digitos en decimal al registro AL
     aam ;ajusta el valor en AL por: AH=23 Y AL=4 
     mov unidad,al ; Respaldo 4 en unidades
@@ -310,12 +309,14 @@ readesc:
 	mov dl,00
 	int 10h
 	
+	
      ;interrupcion 1 seg
     mov cx, 0fh
     mov dx, 4240h
     mov ah, 86h
     int 15h            
     ;interrupcion 1 seg
+	
 	mov color,0
 	mov dx,bocax
 	mov cx,bocay
@@ -325,14 +326,13 @@ readesc:
     call pixel
     inc time
 	
-	
 	;mov ah,8h
     mov ah,06h
 	mov dl,00ffh
 	int 21h
-	
-	
 	jz readesc
+	
+	
 	cmp al,70h  ;hexa de la tecla p
     je printmenu
 	cmp al,6dh	;saltar si es igual a m la tecla presionada
@@ -1023,28 +1023,9 @@ nameus:
     ret
 
 maxscore:
-    ;mov ah,02h
-    ;mov dh,00
-    ;mov dl,33
-    ;int 10h
-    
-    ;mov dx,offset msgmaxscore
-    ;mov ah,9h
-    ;int 21h
-    ;ret
-	
-	mov al,scoreh ; asigno un valor de 3 digitos en decimal al registro AL
-    aam ;ajusta el valor en AL por: AH=23 Y AL=4 
-    mov unidad1,al ; Respaldo 4 en unidades
-    mov al,ah ;muevo lo que tengo en AH a AL para poder volver a separar los números 
-    aam ; separa lo qe hay en AL por: AH=2 Y AL=3
-    mov centena1,ah ;respaldo las centenas en cen en este caso 2
-    mov decena1,al ;respaldo las decenas en dec, en este caso 3
-    ;Imprimos los tres valores empezando por centenas, decenas y unidades.
-    
     mov ah,02h
-    mov dh,00
-    mov dl,33
+    mov dh,01
+    mov dl,30
     int 10h
            
     mov dx,offset msgmaxscore
@@ -1052,24 +1033,19 @@ maxscore:
     int 21h   
     
     mov ah,02h
-	mov dh,00
-	mov dl,37
+	mov dh,01
+	mov dl,34
 	int 10h
-	         
-	mov ah,02h         
-	mov dl,centena1
-    add dl,30h ; se suma 30h a dl para imprimir el numero real.
-    int 21h
+	       
+	mov dx,offset scoreread
+	mov ah,9h
+	int 21h
+	
+	mov ah,02h
+    mov dh,01
+    mov dl,00
+    int 10h
     
-    mov ah,02h
-    mov dl,decena1
-    add dl,30h
-    int 21h
-              
-    mov ah,02h          
-    mov dl,unidad1
-    add dl,30h
-    int 21h       
     ret
     
 timer:
@@ -1920,79 +1896,84 @@ firstview:
 	cmp     ax, cx          
 	jne     finall
 	
-	mov cx,20   ;Determinamos la cantidad de datos a leer/comparar
-	mov AX,DS  ;mueve el segmento datos a AX
-	mov ES,AX  ;Mueve los datos al segmento extra
+	mov cx,20   
+	mov AX,DS  
+	mov ES,AX  
 
-	lea si,user_read  ;cargamos en si la cadena que contiene vec	
-	lea di,user_name ;cargamos en di la cadena que contiene vec2		
-	repe cmpsb  ;compara las dos cadenas	
-	je continuar ;si no fueron igual
+	lea si,user_read  	
+	lea di,user_name 		
+	repe cmpsb  	
+	je continuar 
 	
-	;mover 5 espacios el puntero
-	mov     ah,3fh          ;Read data from the file
-	lea     dx, pass_read  ;Address of data buffer
-	mov     cx, 5          ;Read one byte
-	mov     bx, handle      ;Get file handle value
+	mov     ah,3fh          
+	lea     dx, pass_read  
+	mov     cx, 5          
+	mov     bx, handle     
 	int     21h
 	jc      salir
-	cmp     ax, cx          ;final leido?
+	cmp     ax, cx         
 	jne     finall	
 	
-	;mueve el puntero los 3 espacios del marcador
-	mov     ah,3fh          ;Read data from the file
-	lea     dx, pass_read  ;Address of data buffer
-	mov     cx, 3          ;Read one byte
-	mov     bx, handle      ;Get file handle value
+	mov     ah,3fh          
+	lea     dx, pass_read  
+	mov     cx, 3          
+	mov     bx, handle      
 	int     21h
-	cmp     ax, cx          ;final leido?
+	cmp     ax, cx          
 	jne     finall		
-	jmp firstview  ;Read next byte
+	jmp firstview  
 		
 continuar:
 	view slash
-	view user_read
-	view user_name
+	;view user_read
+	;view user_name
+	mov     ah,3fh          
+	lea     dx, pass_read  
+	mov     cx, 5          
+	mov     bx, handle     
+	int     21h
+	jc      salir
+	cmp     ax, cx         
+	jne     finall
+		
+	mov cx,5   
+	mov AX,DS  
+	mov ES,AX  
+
+	lea si,pasword  
+	lea di,pass_read 
+	view slash
+	;view pasword
+	;view pass_read
+	repe cmpsb  
+	Je search 	
+	
+	mov     ah,3fh         
+	lea     dx, pass_read  
+	mov     cx, 3          
+	mov     bx, handle      
+	int     21h
+	cmp     ax, cx          
+	jne     finall	
+	jmp firstview
+		
+search:
 	mov     ah,3fh          ;Read data from the file
-	lea     dx, pass_read  ;Address of data buffer
-	mov     cx, 5          ;Read one byte
+	lea     dx, scoreread  ;Address of data buffer
+	mov     cx, 3         ;Read one byte
 	mov     bx, handle      ;Get file handle value
 	int     21h
 	jc      salir
 	cmp     ax, cx          ;final leido?
 	jne     finall
-		
-	mov cx,5   ;Determinamos la cantidad de datos a leer/comparar
-	mov AX,DS  ;mueve el segmento datos a AX
-	mov ES,AX  ;Mueve los datos al segmento extra
-
-	lea si,pasword  ;cargamos en si la cadena que contiene vec
-	lea di,pass_read ;cargamos en di la cadena que contiene vec2
-	view slash
-	view pasword
-	view pass_read
-	repe cmpsb  ;compara las dos cadenas
-	Je search ;si fueron igual	
-	
-	;mueve el puntero los 3 espacios del marcador
-	mov     ah,3fh          ;Read data from the file
-	lea     dx, pass_read  ;Address of data buffer
-	mov     cx, 3          ;Read one byte
-	mov     bx, handle      ;Get file handle value
-	int     21h
-	cmp     ax, cx          ;final leido?
-	jne     finall	
-	jmp firstview
-		
-search:
     mov     bx, handle
-    mov     ah, 3eh         ;Close file
+    mov     ah, 3eh         
     int     21h
 	jmp option1
 
 finall:
 	mov     bx, handle
-	mov     ah, 3eh         ;Close file
+	mov     ah, 3eh         
 	int     21h
    
 	call clear_vector
