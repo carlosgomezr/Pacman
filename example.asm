@@ -113,6 +113,15 @@ endm
             pxr dw 0
             pyr dw 0
             ptam dw 16
+		;variable ojo pacman
+            pojok dw 0
+            pojol dw 0
+            pojox dw 9
+            pojoy dw 17
+            pojoxr dw 0
+            pojoyr dw 0
+            ojot dw 2
+			ocho dw 8
 		;variable boca pacman
 			bocax dw 3
 			bocay dw 4
@@ -419,10 +428,13 @@ option1:
 	mov decena,0
 	mov unidad,0
 	mov time,0
+	mov pojox,9
+	mov pojoy,17
     call laberinto
     call point
 	call frutas
     call dibujarpacman
+	call dibujarojo
 	;call timer
     jmp readesc   
        
@@ -929,14 +941,18 @@ rutscore:
 	
     ;Termina impresion numero score   
     ret
+dibujarojo:
+	call mulojo
+	call ojopixel
+	ret
+	
 dibujarboca:
 	mov dx,bocax
 	mov cx,bocay
 	mov posx,dx
     mov posy,cx
     call multi
-    call pixel
-	
+    call pixel	
 dibujarpacman:   
     call rutscore
     ;call timer           
@@ -953,6 +969,7 @@ dibujarpacman:
     call multipac
     call pacpixel
     ;/PACMAN
+	call dibujarojo
     ret 
          
 frutas:    
@@ -994,6 +1011,15 @@ nameus:
     mov dx,offset msgname
     mov ah,9h
     int 21h
+	
+	mov ah,02h
+	mov dh,00
+	mov dl,25
+	int 10h
+	
+	mov dx,offset user_name
+	mov ah,9h
+	int 21h
     ret
 
 maxscore:
@@ -1094,6 +1120,44 @@ timer:
     inc time  
     
     ret
+	mulojo:
+		mov ax,pojox
+        mul ojot
+        mov pojoxr,ax
+        mov ax,pojoy
+        mul ojot
+        mov pojoyr,ax
+        mov pojol,0
+		
+	ojopixel:
+        mov pojok,0
+        mov si,ojot
+        cmp pojol,si
+        jb ojopixel2
+        ret
+	
+	ojopixel2:
+        mov ah,0ch
+        mov al,0
+        mov bh,0 
+        mov si,pojok
+        add pojoxr,si
+        mov si,pojol
+        add pojoyr,si
+        mov cx,pojoxr
+        mov dx,pojoyr
+        mov si,pojok
+        sub pojoxr,si
+        mov si,pojol
+        sub pojoyr,si
+        int 10h
+        inc pojok   
+        mov si,ojot
+        cmp pojok,si
+        jb ojopixel2
+        inc pojol
+        jmp ojopixel
+		
     multipac:
         mov ax,px
         mul ptam
@@ -1108,6 +1172,7 @@ timer:
         cmp pl,si
         jb pacpixel2
         ret
+		
     pacpixel2:
         mov ah,0ch
         mov al,colorpac
@@ -1248,6 +1313,7 @@ timer:
         dec py                                   
         dec bocay
 		dec bocay
+		sub pojoy,8
 		call dibujarpacman
         jmp readesc
                     
@@ -1257,6 +1323,7 @@ timer:
         inc py   
 		inc bocay
 		inc bocay		
+		add pojoy,8
         call dibujarpacman
         jmp readesc
     
@@ -1266,6 +1333,7 @@ timer:
         dec px   
 		dec bocax
 		dec bocax
+		sub pojox,8
         call dibujarpacman
         jmp readesc   
         
@@ -1275,6 +1343,7 @@ timer:
         inc px   
 		inc bocax
 		inc bocax
+		add pojox,8
         call dibujarpacman
         jmp readesc
     
@@ -1284,6 +1353,7 @@ timer:
         dec py   
 		dec bocay
 		dec bocay
+		sub pojoy,8
         call dibujarpacman
         jmp readesc
                     
@@ -1293,6 +1363,7 @@ timer:
         inc py   
 		inc bocay
 		inc bocay
+		add pojoy,8
         call dibujarpacman
         jmp readesc
     
@@ -1302,6 +1373,7 @@ timer:
         dec px   
 		dec bocax
 		dec bocax
+		sub pojox,8
         call dibujarpacman
         jmp readesc   
         
@@ -1311,6 +1383,7 @@ timer:
         inc px   
 		inc bocax
 		inc bocax
+		add pojox,8
         call dibujarpacman
         jmp readesc
                            
@@ -1321,6 +1394,7 @@ timer:
         dec py   
 		dec bocay
 		dec bocay
+		sub pojoy,8
         call dibujarpacman
         jmp readesc
                     
@@ -1330,6 +1404,7 @@ timer:
         inc py   
 		inc bocay
 		inc bocay
+		add pojoy,8
         call dibujarpacman
         jmp readesc
     
@@ -1339,6 +1414,7 @@ timer:
         dec px   
 		dec bocax
 		dec bocax
+		sub pojox,8
         call dibujarpacman
         jmp readesc   
         
@@ -1348,6 +1424,7 @@ timer:
         inc px   
 		inc bocax
 		inc bocax
+		add pojox,8
         call dibujarpacman
         jmp readesc 
         
@@ -1357,6 +1434,7 @@ timer:
         dec py   
 		dec bocay
 		dec bocay
+		sub pojoy,8
         call dibujarpacman
         jmp readesc
                     
@@ -1366,6 +1444,7 @@ timer:
         inc py   
 		inc bocay
 		inc bocay
+		add pojoy,8
         call dibujarpacman
         jmp readesc
     
@@ -1375,6 +1454,7 @@ timer:
         dec px   
 		dec bocax
 		dec bocax
+		sub pojox,8
         call dibujarpacman
         jmp readesc   
         
@@ -1384,6 +1464,7 @@ timer:
         inc px   
 		inc bocax
 		inc bocax
+		add pojox,8
         call dibujarpacman
         jmp readesc                          
                                 
@@ -1423,6 +1504,7 @@ timer:
         dec py    
 		dec bocay
 		dec bocay
+		sub pojoy,8
         ;inc score
         call dibujarpacman
         jmp readesc  
@@ -1454,6 +1536,7 @@ timer:
         inc py   
 		inc bocay
 		inc bocay
+		add pojoy,8
         ;inc score
         call dibujarpacman
         jmp readesc
@@ -1485,6 +1568,7 @@ timer:
         dec px
 		dec bocax
 		dec bocax
+		sub pojox,8
 		cmp px,1
 		jb xpaso1
         ;inc score
@@ -1494,6 +1578,7 @@ timer:
 		call pintarnegro
         mov px,18
 		mov bocax,37
+		mov pojox,145
         call dibujarpacman
         jmp readesc
     pressd:        
@@ -1524,6 +1609,7 @@ timer:
         inc px   
 		inc bocax
 		inc bocax
+		add pojox,8
         ;inc score
 		cmp px,18
 		ja xpaso2
@@ -1533,7 +1619,8 @@ timer:
 	xpaso2:
 		call pintarnegro
         mov px,1 
-		mov bocax,1
+		mov bocax,3
+		mov pojox,9
         call dibujarpacman
         jmp readesc
 		
@@ -1901,7 +1988,7 @@ search:
     mov     bx, handle
     mov     ah, 3eh         ;Close file
     int     21h
-	jmp printmenu
+	jmp option1
 
 finall:
 	mov     bx, handle
