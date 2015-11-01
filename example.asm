@@ -6,6 +6,42 @@ imprime macro cadena
   int 21h
 endm
 
+
+
+view macro cadena
+		MOV   AX,SEG cadena ;muevo a ax la cadena q deseo imprimir
+		MOV   DS,AX        
+		MOV   AH,09        ;asigno a ah = 09 para mostrar en consola
+		LEA   DX,cadena    ;paso a dx la cadena
+		INT   21H  		   ;interrupcion int 21h muestra en consola
+endm    
+
+clear macro     
+            ;----------Con todo esto limpiamos la pantalla y la cerramos----------    
+	mov ah, 0
+	mov al, 3h
+	int 10h
+    mov ah, 6h          ;funcion 6h=scroll up, 7h=scroll down
+    mov al, 0h          ;lineas a escrolear 0=borrar toda la pantalla
+    mov bh, 00000111b  ;atributo, 4 bits primeros= background, 4ultimos = font color
+    mov ch, 0           ;fila inicial de relleno
+    mov cl, 0           ;columna inicial de relleno
+    mov dh, 24          ;fila final de relleno
+    mov dl, 79          ;columna final de relleno
+    int 10h             ;interrupcion con funcion ah=6h
+endm      
+
+counter macro
+	lea si, scorefile	;macro counter contiene score
+	mov cx, 20
+macr:	
+	mov al, 30h
+	mov [si], al
+	inc si	
+	loop macr
+endm
+
+
 .model small
 .stack
 .data
@@ -26,6 +62,30 @@ endm
         msgname db "name$"
 		msgmaxscore db "MxS$"
 	    msgnumero db 'Numero al azar: $' 
+		;File file
+		us db "Ingrese usuario", 0Dh,0Ah,"$"
+		pass db "Ingrese password", 0Dh,0Ah,"$"
+		vpass db "confirme password", 0Dh,0Ah,"$"
+		msgcreateuser db "user creado (~owo)~", 0Dh,0Ah,"$"
+		msgadd db "se aniadio", 0Dh,0Ah,"$"
+		slash db " ", 0Dh,0Ah,"$"
+		path db 'Usuarios.txt',0 ;nombre del archivo que deseo crear se almacena en masm611\binr
+		separar db " ","$"
+
+		scorefile db 3 dup(' '),'$'
+		user_name db 20 dup(' '),'$'
+		pasword db 5 dup(' '),'$'
+
+		user_read db 20 dup(' '),'$'
+		pass_read db 5 dup(' '),'$'
+
+		confirmarpass db 5 dup(' '),'$'
+
+		handle dw ?
+
+		msgerror1 db "ERROR ARCHIVO Usuarios.txt",0Dh,0Ah,21h
+		msgcoinciden db 'password incorreccta verifique$'
+
         ;variables
         ;variable laberinto
             i dw 0
@@ -118,11 +178,13 @@ readop:
     cmp al,30h
     je option1  ;saltar si es igual a uno
     cmp al,31h
-    je option2  ;saltar si es igual a dos
-    cmp al,32h
-    je option3  ;saltar si es igual a tres
-    cmp al,33h
-    jne readop ;saltar si es igual a cuatro
+    ;je option2  ;saltar si es igual a dos
+    je login
+	cmp al,32h
+    ;je option3  ;saltar si es igual a tres
+    je registrarse
+	cmp al,33h
+    je salir ;saltar si es igual a cuatro
     
     ;borrar pantalla
     mov ah,6h   ;funcion 6h=scroll up, 7h=scroll down
@@ -1032,7 +1094,6 @@ timer:
     inc time  
     
     ret
-    
     multipac:
         mov ax,px
         mul ptam
@@ -1518,6 +1579,340 @@ timer:
         mov al,13h
         int 10h
         jmp printcarnet
+	
+	;file code
+	       
+registrarse:
+	clear
+	view us
+	jmp readuser
+			
+readuser:	
+	lea SI, user_name	
+	mov cx,20	
+	 
+savevec:
+    mov ah,07h
+    int 21h
+    cmp al, 0Dh
+    je ingresopass1
+    mov [SI],al
+    inc SI
+    mov dl,al
+    mov ah,02h
+    int 21h
+    loop savevec
+	
+ingresopass1:	
+	view slash
+	view pass
+	lea SI,pasword
+	mov cx,5
+		
+savepassword:
+	mov ah,07h
+    int 21h
+    cmp al,0Dh
+    je ingresopass2
+    mov [SI],al
+    inc SI
+    mov dl,al
+    mov ah,02h
+    int 21h
+    loop savepassword
+	
+ingresopass2:
+	view slash
+	view vpass
+	lea SI,confirmarpass
+	mov cx,5
+ 
+savevec2:
+    mov ah,07h
+    int 21h
+    cmp al, 0Dh
+    je compare
+    mov [SI],al
+    inc SI
+    mov dl,al
+    mov ah,02h
+    int 21h
+    loop savevec2
+
+compare:
+	mov cx,5
+	mov ax,ds
+	mov es,ax
+	lea si,pasword  
+	lea di,confirmarpass 
+	repe cmpsb  ;compara la password ingresada con la que cargue del archivo user
+	Jne dif  ;passwords diferentes 
+	je igual ;passwords iguales
+	
+clear_leidos:
+	lea si,user_read
+	mov cx,20
+	
+removeuserread:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop removeuserread
+rpassread:
+	lea si,pass_read
+	mov cx,5
+clearpassr:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop clearpassr
+	ret
+	
+clear_vector:
+	lea si,user_name
+	mov cx,20
+cleanus:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop cleanus	
+cleanpass:
+	lea si,Pasword
+	mov cx,5
+clpass:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop clpass	
+cleanconfirmacion:
+	lea si,confirmarpass
+	mov cx,5
+cleanconfirpass:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop cleanconfirpass
+cleanscore:
+	lea si,scorefile
+	mov cx,3
+clean_marc:
+	mov al,separar
+	mov [si],al
+	inc si 
+	loop clean_marc
+	ret
+			  
+modificar:
+	mov ah, 3dh
+	mov al, 2
+	mov dx, offset path
+	int 21h
+	jc salir
+
+	mov [handle], ax
+	mov bx, ax
+	mov ah, 42h  
+	mov al, 2    
+	mov cx, 0    
+	mov dx, 0    
+	int 21h
+	jc salir
+	;escribo en el archivo xD
+	mov bx, [handle]
+	mov dx, offset user_name
+	mov cx, 20
+	mov ah, 40h
+	int 21h 
+	mov bx, [handle]
+	mov dx, offset pasword
+	mov cx, 5
+	mov ah, 40h
+	int 21h 
+	counter
+	mov bx, [handle]
+	mov dx, offset scorefile
+	mov cx, 3
+	mov ah, 40h
+	int 21h 
+	view msgadd
+	;cierro archivo xD
+	mov bx, [handle]
+	mov ah, 3eh
+	int 21h 
+	call clear_vector
+	jmp printmenu
+			
+dif:
+	view slash
+	view msgcoinciden
+	call clear_vector
+	jmp printmenu
+	
+igual:	
+	jmp modificar	
+	
+crear:
+	mov ax,@data  
+	mov ds,ax
+	mov ah,3ch ;aqui es donde creo el archivo 
+	mov cx,0 
+	mov dx,offset path 
+	int 21h
+	jc ERR 
+	view msgcreateuser
+	mov bx,ax
+	mov ah,3eh ;cierra el archivo
+	int 21h
+	jmp printmenu
+	
+ERR:
+	view msgerror1
+	jmp printmenu
+	
+salir:
+	mov ax, 4C00H
+	int 21h
+	
+login:
+	call clear_leidos
+	call clear_vector
+	clear
+	view us
+	jmp saveus
+	
+saveus:
+	lea SI, user_name	
+	mov cx,20	
+	 
+nextsave:
+    mov ah,07h
+    int 21h
+    cmp al, 0Dh
+    je givemepass
+    mov [SI],al
+    inc SI
+    mov dl,al
+    mov ah,02h
+    int 21h
+    loop nextsave
+	
+givemepass:
+	view slash
+	view pass
+	lea SI,pasword
+	mov cx,5
+
+savepass:
+	mov ah,07h
+    int 21h
+    cmp al,0Dh
+    je read
+    mov [SI],al
+    inc SI
+    mov dl,al
+    mov ah,02h
+    int 21h
+    loop savepass
+
+read:
+	mov     ah, 3dh        ;abro el archivo y lo leo
+	mov     al, 0           
+	lea     dx, path    
+	int     21h             
+	jc      salir
+	mov     handle, ax       ;guardo handle 
+	
+firstview:        
+	call clear_leidos
+	mov     ah,3fh          
+	lea     dx, user_read  
+	mov     cx, 20          
+	mov     bx, handle      
+	int     21h
+	jc      salir
+	cmp     ax, cx          
+	jne     finall
+	
+	mov cx,20   ;Determinamos la cantidad de datos a leer/comparar
+	mov AX,DS  ;mueve el segmento datos a AX
+	mov ES,AX  ;Mueve los datos al segmento extra
+
+	lea si,user_read  ;cargamos en si la cadena que contiene vec	
+	lea di,user_name ;cargamos en di la cadena que contiene vec2		
+	repe cmpsb  ;compara las dos cadenas	
+	je continuar ;si no fueron igual
+	
+	;mover 5 espacios el puntero
+	mov     ah,3fh          ;Read data from the file
+	lea     dx, pass_read  ;Address of data buffer
+	mov     cx, 5          ;Read one byte
+	mov     bx, handle      ;Get file handle value
+	int     21h
+	jc      salir
+	cmp     ax, cx          ;final leido?
+	jne     finall	
+	
+	;mueve el puntero los 3 espacios del marcador
+	mov     ah,3fh          ;Read data from the file
+	lea     dx, pass_read  ;Address of data buffer
+	mov     cx, 3          ;Read one byte
+	mov     bx, handle      ;Get file handle value
+	int     21h
+	cmp     ax, cx          ;final leido?
+	jne     finall		
+	jmp firstview  ;Read next byte
+		
+continuar:
+	view slash
+	view user_read
+	view user_name
+	mov     ah,3fh          ;Read data from the file
+	lea     dx, pass_read  ;Address of data buffer
+	mov     cx, 5          ;Read one byte
+	mov     bx, handle      ;Get file handle value
+	int     21h
+	jc      salir
+	cmp     ax, cx          ;final leido?
+	jne     finall
+		
+	mov cx,5   ;Determinamos la cantidad de datos a leer/comparar
+	mov AX,DS  ;mueve el segmento datos a AX
+	mov ES,AX  ;Mueve los datos al segmento extra
+
+	lea si,pasword  ;cargamos en si la cadena que contiene vec
+	lea di,pass_read ;cargamos en di la cadena que contiene vec2
+	view slash
+	view pasword
+	view pass_read
+	repe cmpsb  ;compara las dos cadenas
+	Je search ;si fueron igual	
+	
+	;mueve el puntero los 3 espacios del marcador
+	mov     ah,3fh          ;Read data from the file
+	lea     dx, pass_read  ;Address of data buffer
+	mov     cx, 3          ;Read one byte
+	mov     bx, handle      ;Get file handle value
+	int     21h
+	cmp     ax, cx          ;final leido?
+	jne     finall	
+	jmp firstview
+		
+search:
+    mov     bx, handle
+    mov     ah, 3eh         ;Close file
+    int     21h
+	jmp printmenu
+
+finall:
+	mov     bx, handle
+	mov     ah, 3eh         ;Close file
+	int     21h
+   
+	call clear_vector
+	call clear_leidos
+	view slash
+	view user_read
+	jmp printmenu
 
 
 end 
