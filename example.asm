@@ -42,13 +42,15 @@ macr:
 endm
 
 
+
+
 .model small
 .stack
 .data
 		cadena db 'Cadena a Escribir en el archivo','$'
 		head db "Universidad de San Carlos de Guatemala",0Dh,0Ah,24h   
         menu db "Seleccione una opcion",0Dh,0Ah,24h; 0Dh,0Ah,24h --> equivale a '\n' en C++,
-        op1 db "0. Laberinto",0Dh,0Ah,24h
+        op1 db "Arquitectura de ensambladores y Computadores 1",0Dh,0Ah,24h
         op2 db "1. Login",0Dh,0Ah,24h
         op3 db "2. Registrarse",0Dh,0Ah,24h
         op4 db "3. Salir",0Dh,0Ah,24h
@@ -63,6 +65,12 @@ endm
 		msgmaxscore db "MxS$"
 	    msgnumero db 'Numero al azar: $' 
 		;File file
+		msgerror1 db "ERROR ARCHIVO Usuarios.txt",0Dh,0Ah,21h
+		msgcoinciden db 'password incorreccta verifique$'
+		msgnoexiste db " No existe el user ",0dh,0ah,21h
+		msgpassin db " Password incorrecta ",0dh,0ah,21h
+		msglog db " LOGIN ",0dh,0ah,"$"
+		msgreg db " REGISTRO ",0dh,0ah,"$"
 		us db "Ingrese usuario", 0Dh,0Ah,"$"
 		pass db "Ingrese password", 0Dh,0Ah,"$"
 		vpass db "confirme password", 0Dh,0Ah,"$"
@@ -72,19 +80,25 @@ endm
 		path db 'Usuarios.txt',0 ;nombre del archivo que deseo crear se almacena en masm611\binr
 		separar db " ","$"
 		;variables file
+
+			duni db 0
+			ddece db 0
+			dcen db 0
+			dmil db 0
+			dcom1 db 0
+			dcom2 db 0
+			dcom3 db 0
+			dcom4 db 0
 			scorefile db 3 dup(' '),'$'
 			scoreread db 3 dup(' '),'$'
 			user_name db 20 dup(' '),'$'
-			pasword db 5 dup(' '),'$'
+			ppass db 5 dup(' '),'$'
 			user_read db 20 dup(' '),'$'
 			pass_read db 5 dup(' '),'$'
 			confirmarpass db 5 dup(' '),'$'
 			handle dw ?
-			msgerror1 db "ERROR ARCHIVO Usuarios.txt",0Dh,0Ah,21h
-			msgcoinciden db 'password incorreccta verifique$'
-			msgnoexiste db " No existe el user ",0dh,0ah,21h
-			msgpassin db " Password incorrecta ",0dh,0ah,21h
-        ;variables
+			handle2 dw ?
+			        ;variables
         ;variable laberinto
             i dw 0
             j dw 0
@@ -165,6 +179,9 @@ endm
 			
 .code
 inicio:
+	jmp crear
+	jmp printmenu
+	
 printmenu:
 	imprime head;en dx se le asigna la cadena de entrada
     imprime menu
@@ -183,17 +200,17 @@ printmenujuego:
 readop:
     mov ah,8h  ;lee un caracter sin imprimirlo
     int 21h
-    cmp al,30h
-    je option1  ;saltar si es igual a uno
+    ;cmp al,30h
+    ;je option1  ;saltar si es igual a cero
     cmp al,31h
-    ;je option2  ;saltar si es igual a dos
+    ;je option2  ;saltar si es igual a uno
     je login
 	cmp al,32h
-    ;je option3  ;saltar si es igual a tres
+    ;je option3  ;saltar si es igual a dos
     je registrarse
 	cmp al,33h
-    je salir ;saltar si es igual a cuatro
-    
+    je salir ;saltar si es igual a tres
+   
     ;borrar pantalla
     mov ah,6h   ;funcion 6h=scroll up, 7h=scroll down
     mov al,0h   ;lineas a scrolear 0=borrar toda la pantalla
@@ -614,6 +631,7 @@ point:
     call multi
     call pixel 
     mov posx,20
+	
     mov posy,4
     call multi
     call pixel 
@@ -1025,7 +1043,7 @@ nameus:
 maxscore:
     mov ah,02h
     mov dh,01
-    mov dl,30
+    mov dl,00
     int 10h
            
     mov dx,offset msgmaxscore
@@ -1034,10 +1052,10 @@ maxscore:
     
     mov ah,02h
 	mov dh,01
-	mov dl,34
+	mov dl,04
 	int 10h
 	       
-	mov dx,offset scoreread
+	mov dx,offset scorefile
 	mov ah,9h
 	int 21h
 	
@@ -1473,9 +1491,9 @@ timer:
         cmp al,12
         je incrementfresa1
         cmp al,13
-        je incrementnaranja1
-        cmp al,14
         je incrementbanano1
+        cmp al,14
+        je incrementnaranja1
         call pintarnegro
         dec py    
 		dec bocay
@@ -1505,9 +1523,9 @@ timer:
         cmp al,12
         je incrementfresa2 
         cmp al,13
-        je incrementnaranja2
+        je incrementbanano2
         cmp al,14
-        je incrementbanano2            
+        je incrementnaranja2            
         call pintarnegro
         inc py   
 		inc bocay
@@ -1537,9 +1555,9 @@ timer:
 	    cmp al,12
         je incrementfresa3 
         cmp al,13
-        je incrementnaranja3
-        cmp al,14
         je incrementbanano3
+        cmp al,14
+        je incrementnaranja3
         call pintarnegro
         dec px
 		dec bocax
@@ -1578,9 +1596,9 @@ timer:
 	    cmp al,12
         je incrementfresa4 
         cmp al,13
-        je incrementnaranja4
-        cmp al,14
         je incrementbanano4
+        cmp al,14
+        je incrementnaranja4
         call pintarnegro
         inc px   
 		inc bocax
@@ -1647,6 +1665,7 @@ timer:
 	       
 registrarse:
 	clear
+	;view msgreg
 	view us
 	jmp readuser
 			
@@ -1669,7 +1688,7 @@ savevec:
 ingresopass1:	
 	view slash
 	view pass
-	lea SI,pasword
+	lea SI,ppass
 	mov cx,5
 		
 savepassword:
@@ -1706,7 +1725,7 @@ compare:
 	mov cx,5
 	mov ax,ds
 	mov es,ax
-	lea si,pasword  
+	lea si,ppass  
 	lea di,confirmarpass 
 	repe cmpsb  ;compara la password ingresada con la que cargue del archivo user
 	Jne dif  ;passwords diferentes 
@@ -1740,7 +1759,7 @@ cleanus:
 	inc si 
 	loop cleanus	
 cleanpass:
-	lea si,Pasword
+	lea si,ppass
 	mov cx,5
 clpass:
 	mov al,separar
@@ -1787,7 +1806,7 @@ modificar:
 	mov ah, 40h
 	int 21h 
 	mov bx, [handle]
-	mov dx, offset pasword
+	mov dx, offset ppass
 	mov cx, 5
 	mov ah, 40h
 	int 21h 
@@ -1840,6 +1859,7 @@ login:
 	call clear_leidos
 	call clear_vector
 	clear
+	;view msglog
 	view us
 	jmp saveus
 	
@@ -1862,7 +1882,7 @@ nextsave:
 givemepass:
 	view slash
 	view pass
-	lea SI,pasword
+	lea SI,ppass
 	mov cx,5
 
 savepass:
@@ -1940,11 +1960,9 @@ continuar:
 	mov AX,DS  
 	mov ES,AX  
 
-	lea si,pasword  
+	lea si,ppass  
 	lea di,pass_read 
 	view slash
-	;view pasword
-	;view pass_read
 	repe cmpsb  
 	Je search 	
 	
@@ -1982,5 +2000,5 @@ finall:
 	view user_read
 	jmp printmenu
 
-
+	
 end 
